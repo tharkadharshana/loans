@@ -1,0 +1,5 @@
+{
+  "name": "LankanLoan Optimizer",
+  "description": "A smart loan calculator designed for the Sri Lankan banking sector. Visualize the trade-off between monthly installments (EMI) and total interest to find your 'Sweet Spot', powered by Gemini AI for financial insights.",
+  "requestFramePermissions": []
+}
