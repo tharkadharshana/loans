@@ -3,6 +3,7 @@ export interface LoanParams {
   interestRate: number;
   tenureMonths: number;
   extraPayment: number;
+  monthlyBudget: number; // New field for Affordability Calculator
 }
 
 export interface AmortizationRow {
@@ -27,4 +28,13 @@ export interface AIAnalysis {
   advice: string;
   loading: boolean;
   error: string | null;
+}
+
+export interface PrepaymentScenario {
+  label: string;
+  extraAmount: number;
+  newTenure: number;
+  interestSaved: number;
+  timeSavedMonths: number;
+  totalPayment: number;
 }

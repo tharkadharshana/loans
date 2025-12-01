@@ -1,7 +1,7 @@
 import React from 'react';
 import { LoanParams } from '../types';
 import { formatCurrency } from '../services/loanUtils';
-import { Banknote, Wallet } from 'lucide-react';
+import { Banknote, Wallet, Calculator } from 'lucide-react';
 
 interface LoanControlsProps {
   params: LoanParams;
@@ -26,6 +26,10 @@ const LoanControls: React.FC<LoanControlsProps> = ({ params, onChange, baseEmi }
   const handleExtraPaymentChange = (val: number) => {
     onChange({ ...params, extraPayment: val });
   };
+
+  const handleBudgetChange = (val: number) => {
+    onChange({ ...params, monthlyBudget: val });
+  }
 
   // Quick select presets
   const amountPresets = [500000, 1000000, 2500000, 5000000];
@@ -80,6 +84,35 @@ const LoanControls: React.FC<LoanControlsProps> = ({ params, onChange, baseEmi }
 
       <div className="h-px bg-slate-100 w-full"></div>
 
+      {/* Affordability / Budget Optimizer (New) */}
+      <div className="space-y-2 bg-amber-50/50 p-4 rounded-2xl border border-amber-100/50 transition-colors hover:bg-amber-50 group">
+         <div className="flex items-center gap-2 mb-1 text-amber-700">
+           <Calculator size={16} />
+           <span className="text-xs font-bold uppercase tracking-wider">Affordability Calculator</span>
+        </div>
+        
+        <div className="space-y-1">
+             <label className="text-[10px] text-amber-600/80 font-medium">My Max Monthly Budget</label>
+             <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-amber-400 font-medium text-sm">Rs.</span>
+                </div>
+                <input
+                    type="number"
+                    value={params.monthlyBudget === 0 ? '' : params.monthlyBudget}
+                    placeholder="Enter your limit (e.g. 40000)"
+                    onChange={(e) => handleBudgetChange(Number(e.target.value))}
+                    className="block w-full pl-9 pr-3 py-2 text-sm font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none placeholder:text-amber-300 placeholder:font-normal"
+                />
+             </div>
+        </div>
+        <p className="text-[10px] text-amber-600/70 leading-tight">
+            We'll highlight the "Budget Sweet Spot" on the chart and calculate your borrowing power.
+        </p>
+      </div>
+
+      <div className="h-px bg-slate-100 w-full"></div>
+
       {/* Interest Rate & Tenure Grid */}
       <div className="grid grid-cols-2 gap-6">
         {/* Interest Rate Input */}
@@ -127,7 +160,7 @@ const LoanControls: React.FC<LoanControlsProps> = ({ params, onChange, baseEmi }
       <div className="h-px bg-slate-100 w-full"></div>
 
       {/* Extra Payment Strategy */}
-      <div className="space-y-2 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100/50">
+      <div className="space-y-2 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100/50 transition-colors hover:bg-emerald-50">
         <div className="flex items-center gap-2 mb-1 text-emerald-700">
            <Wallet size={16} />
            <span className="text-xs font-bold uppercase tracking-wider">Extra Monthly Payment</span>
@@ -138,22 +171,22 @@ const LoanControls: React.FC<LoanControlsProps> = ({ params, onChange, baseEmi }
                 Pay more to reduce tenure & interest
              </div>
              <div className="text-lg font-bold text-emerald-700 tabular-nums">
-                {params.extraPayment > 0 ? formatCurrency(params.extraPayment) : 'Rs. 0'}
+                {params.extraPayment > 0 ? `+ ${formatCurrency(params.extraPayment)}` : 'Rs. 0'}
              </div>
         </div>
 
         <input
           type="range"
           min="0"
-          max={baseEmi * 2} // Allow up to double the EMI or 100k, whichever is reasonable dynamically
-          step="1000"
+          max={Math.max(baseEmi * 1.5, 50000)} // Allow 1.5x EMI or at least 50k
+          step="500"
           value={params.extraPayment}
           onChange={(e) => handleExtraPaymentChange(Number(e.target.value))}
           className="w-full accent-emerald-500 cursor-pointer"
         />
         <div className="flex justify-between text-[9px] font-semibold text-emerald-400 uppercase tracking-wide">
             <span>None</span>
-            <span>+ {formatCurrency(baseEmi)}</span>
+            <span>+ {formatCurrency(Math.max(baseEmi * 1.5, 50000))}</span>
         </div>
       </div>
 

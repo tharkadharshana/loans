@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { LayoutDashboard, Wallet, TrendingUp, Calendar, Table2, Info, PiggyBank, Clock } from 'lucide-react';
+import { LayoutDashboard, Wallet, TrendingUp, Calendar, Table2, Info, PiggyBank, Clock, Briefcase, ChevronRight, Calculator } from 'lucide-react';
 import LoanControls from './components/LoanControls';
 import SweetSpotChart from './components/SweetSpotChart';
 import AIAdvisor from './components/AIAdvisor';
 import AmortizationTable from './components/AmortizationTable';
+import PrepaymentStrategy from './components/PrepaymentStrategy';
 import { LoanParams } from './types';
-import { calculateEMI, formatCurrency, generateAmortizationSchedule, generateSweetSpotData } from './services/loanUtils';
+import { calculateEMI, formatCurrency, generateAmortizationSchedule, generateSweetSpotData, calculateMaxLoanAmount, findOptimalTenureForBudget } from './services/loanUtils';
 
 const App: React.FC = () => {
   const [params, setParams] = useState<LoanParams>({
@@ -13,6 +14,7 @@ const App: React.FC = () => {
     interestRate: 22,
     tenureMonths: 60,
     extraPayment: 0,
+    monthlyBudget: 0, // Default 0 means disabled
   });
 
   const [isTableOpen, setIsTableOpen] = useState(false);
@@ -43,7 +45,44 @@ const App: React.FC = () => {
   const timeSavedMonths = params.tenureMonths - actualTenureMonths;
 
   // Chart Data (Based on parameters, not extra payment simulation, to show the "Sweet Spot" curve)
-  const chartData = useMemo(() => generateSweetSpotData(params.amount, params.interestRate), [params.amount, params.interestRate]);
+  // We may need to extend the chart max months if the budget is very tight (requiring long tenure)
+  const chartMaxMonths = useMemo(() => {
+     if (params.monthlyBudget > 0) {
+        // If budget is tight, ensure we look further out, up to 20 years
+        return 240; 
+     }
+     return 120;
+  }, [params.monthlyBudget]);
+
+  const chartData = useMemo(() => generateSweetSpotData(params.amount, params.interestRate, 6, chartMaxMonths), [params.amount, params.interestRate, chartMaxMonths]);
+
+  // --- NEW: Affordability Calculations ---
+  
+  // A. Borrowing Power: How much can I borrow at THIS tenure with THIS budget?
+  const borrowingPower = useMemo(() => {
+    if (params.monthlyBudget <= 0) return 0;
+    return calculateMaxLoanAmount(params.monthlyBudget, params.interestRate, params.tenureMonths);
+  }, [params.monthlyBudget, params.interestRate, params.tenureMonths]);
+
+  // B. Budget Optimal Tenure: If I want THIS amount, what is the best tenure for my budget?
+  const budgetOptimalTenure = useMemo(() => {
+    if (params.monthlyBudget <= 0) return null;
+    return findOptimalTenureForBudget(params.amount, params.interestRate, params.monthlyBudget);
+  }, [params.amount, params.interestRate, params.monthlyBudget]);
+
+  const applyBorrowingPower = () => {
+      if (borrowingPower > 0) {
+          // Round to nearest 10k
+          const roundedAmount = Math.floor(borrowingPower / 10000) * 10000;
+          setParams(prev => ({...prev, amount: roundedAmount}));
+      }
+  };
+
+  const applyOptimalTenure = () => {
+      if (budgetOptimalTenure) {
+          setParams(prev => ({...prev, tenureMonths: budgetOptimalTenure}));
+      }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/50 bg-grid-slate-100 font-sans text-slate-900 pb-24 md:pb-12 selection:bg-indigo-100 selection:text-indigo-700">
@@ -74,33 +113,81 @@ const App: React.FC = () => {
           {/* Left Column: Controls & AI */}
           <div className="lg:col-span-4 space-y-6">
             <LoanControls params={params} onChange={setParams} baseEmi={baseEmi} />
-            <AIAdvisor params={params} />
             
             {/* Savings Cards (Show only if extra payment is active) */}
             {params.extraPayment > 0 && (
                 <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="bg-white p-4 rounded-2xl shadow-lg shadow-emerald-100 border border-emerald-100">
-                        <div className="bg-emerald-100 w-8 h-8 flex items-center justify-center rounded-lg text-emerald-600 mb-2">
-                            <PiggyBank size={18} />
+                    <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-3 opacity-10 text-emerald-600">
+                             <PiggyBank size={60} />
                         </div>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Interest Saved</p>
-                        <p className="text-lg font-bold text-emerald-600">{formatCurrency(interestSaved)}</p>
+                        <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-1">Interest Saved</p>
+                        <p className="text-xl font-bold text-emerald-700">{formatCurrency(interestSaved)}</p>
                     </div>
-                    <div className="bg-white p-4 rounded-2xl shadow-lg shadow-indigo-100 border border-indigo-100">
-                        <div className="bg-indigo-100 w-8 h-8 flex items-center justify-center rounded-lg text-indigo-600 mb-2">
-                            <Clock size={18} />
+                    <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 relative overflow-hidden">
+                         <div className="absolute top-0 right-0 p-3 opacity-10 text-indigo-600">
+                             <Clock size={60} />
                         </div>
-                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Time Saved</p>
-                        <p className="text-lg font-bold text-indigo-600">
+                         <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider mb-1">Time Saved</p>
+                        <p className="text-xl font-bold text-indigo-700">
                             {Math.floor(timeSavedMonths / 12)}y {timeSavedMonths % 12}m
                         </p>
                     </div>
                 </div>
             )}
+            
+            <AIAdvisor params={params} />
           </div>
 
           {/* Right Column: Visualization & Stats */}
           <div className="lg:col-span-8 space-y-6">
+
+            {/* --- NEW: BORROWING POWER CARD --- */}
+            {params.monthlyBudget > 0 && (
+                <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-3xl p-1 shadow-lg shadow-orange-200 animate-in fade-in slide-in-from-top-4">
+                    <div className="bg-white rounded-[20px] p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-amber-100 rounded-full text-amber-600">
+                                <Briefcase size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800">Borrowing Power</h3>
+                                <p className="text-sm text-slate-500">
+                                    With a budget of <span className="font-bold text-amber-600">{formatCurrency(params.monthlyBudget)}</span>...
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                            {/* Option 1: Apply Max Loan Amount */}
+                            <div className="flex-1 bg-amber-50 p-3 rounded-xl border border-amber-100 flex flex-col items-center text-center">
+                                <span className="text-[10px] font-bold text-amber-600 uppercase">You can borrow up to</span>
+                                <span className="text-xl font-bold text-slate-800 my-1">{formatCurrency(borrowingPower)}</span>
+                                <button 
+                                    onClick={applyBorrowingPower}
+                                    className="text-[10px] bg-white border border-amber-200 text-amber-700 px-3 py-1 rounded-full font-bold hover:bg-amber-100 transition-colors"
+                                >
+                                    Apply Amount
+                                </button>
+                            </div>
+                            
+                            {/* Option 2: Suggest Best Tenure for current amount */}
+                            {budgetOptimalTenure && budgetOptimalTenure !== params.tenureMonths && (
+                                <div className="flex-1 bg-indigo-50 p-3 rounded-xl border border-indigo-100 flex flex-col items-center text-center">
+                                     <span className="text-[10px] font-bold text-indigo-600 uppercase">Best Tenure Fit</span>
+                                     <span className="text-xl font-bold text-slate-800 my-1">{Math.floor(budgetOptimalTenure/12)}y {budgetOptimalTenure%12}m</span>
+                                     <button 
+                                        onClick={applyOptimalTenure}
+                                        className="text-[10px] bg-white border border-indigo-200 text-indigo-700 px-3 py-1 rounded-full font-bold hover:bg-indigo-100 transition-colors"
+                                    >
+                                        Optimize
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
             
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -118,7 +205,21 @@ const App: React.FC = () => {
                         <div className="text-4xl sm:text-5xl font-bold tracking-tight">
                             {formatCurrency(baseEmi + params.extraPayment)}
                         </div>
-                        {params.extraPayment > 0 && (
+                        {/* Budget Status Indicator */}
+                        {params.monthlyBudget > 0 && (
+                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mt-2 ${baseEmi + params.extraPayment > params.monthlyBudget ? 'bg-rose-500/20 text-rose-100' : 'bg-emerald-500/20 text-emerald-100'}`}>
+                                {baseEmi + params.extraPayment > params.monthlyBudget ? (
+                                    <>
+                                        <TrendingUp size={12} /> Exceeds Budget by {formatCurrency((baseEmi + params.extraPayment) - params.monthlyBudget)}
+                                    </>
+                                ) : (
+                                    <>
+                                        <PiggyBank size={12} /> Within Budget
+                                    </>
+                                )}
+                            </div>
+                        )}
+                        {params.extraPayment > 0 && params.monthlyBudget === 0 && (
                             <div className="text-indigo-200 text-sm mt-1 font-medium">
                                 (Base: {formatCurrency(baseEmi)} + Extra: {formatCurrency(params.extraPayment)})
                             </div>
@@ -139,7 +240,9 @@ const App: React.FC = () => {
                     <span className="text-sm font-bold text-slate-500 uppercase tracking-wide">Total Interest</span>
                 </div>
                 <div className="text-2xl font-bold text-slate-900">{formatCurrency(actualTotalInterest)}</div>
-                <div className="text-xs font-medium text-slate-400 mt-1">{(actualTotalInterest / params.amount * 100).toFixed(1)}% of Principal</div>
+                <div className="text-xs font-medium text-slate-400 mt-1">
+                    {(actualTotalInterest / params.amount * 100).toFixed(1)}% of Principal
+                </div>
               </div>
 
               <div className="bg-white p-6 rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-100">
@@ -159,6 +262,15 @@ const App: React.FC = () => {
                 data={chartData} 
                 currentTenure={params.tenureMonths} 
                 actualTenure={params.extraPayment > 0 ? actualTenureMonths : undefined}
+                monthlyBudget={params.monthlyBudget}
+                budgetOptimalTenure={budgetOptimalTenure}
+                onSelectTenure={(months) => setParams(prev => ({...prev, tenureMonths: months}))}
+            />
+
+            {/* Prepayment Strategy - New Component */}
+            <PrepaymentStrategy 
+                params={params} 
+                onApply={(extra) => setParams(p => ({...p, extraPayment: extra}))} 
             />
 
             {/* Action Block */}
