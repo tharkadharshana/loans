@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { LoanParams, PrepaymentScenario } from '../types';
+import { LoanParams } from '../types';
 import { formatCurrency, generatePrepaymentScenarios } from '../services/loanUtils';
-import { ArrowRight, Clock, PiggyBank, TrendingDown } from 'lucide-react';
+import { ArrowRight, CheckCircle, Clock, TrendingUp } from 'lucide-react';
 
 interface PrepaymentStrategyProps {
   params: LoanParams;
@@ -15,65 +15,56 @@ const PrepaymentStrategy: React.FC<PrepaymentStrategyProps> = ({ params, onApply
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-2">
-         <div className="bg-emerald-100 p-2 rounded-lg text-emerald-700">
-            <TrendingDown size={18} />
-         </div>
-         <h3 className="text-lg font-bold text-slate-800">Smart Payoff Strategies</h3>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {scenarios.map((scenario) => (
-          <div 
-            key={scenario.label}
-            className={`
-                relative p-5 rounded-2xl border transition-all duration-300 hover:shadow-lg group
-                ${params.extraPayment === scenario.extraAmount 
-                    ? 'bg-emerald-50 border-emerald-500 shadow-md ring-1 ring-emerald-500' 
-                    : 'bg-white border-slate-200 hover:border-emerald-300'
-                }
-            `}
-          >
-             {params.extraPayment === scenario.extraAmount && (
-                <div className="absolute top-3 right-3 text-xs font-bold text-emerald-600 bg-white px-2 py-1 rounded-full shadow-sm">
-                    Active
-                </div>
-             )}
+    <div className="mb-4">
+       <div className="bg-[#f0f0f2] rounded-t-2xl px-5 py-3 mb-1">
+            <div className="flex items-center gap-2">
+                <TrendingUp size={20} className="text-[#0a0a0a]" />
+                <h2 className="text-base font-bold text-[#0a0a0a]">Smart Payoff Strategies</h2>
+            </div>
+       </div>
+       
+       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {scenarios.map((scenario) => (
+             <div key={scenario.label} className="bg-white rounded-xl p-4 shadow-sm border border-[#e5e5e5]">
+                 <div className="mb-3">
+                    <div className="text-xs font-medium text-[#6b6b6b] mb-1">{scenario.label}</div>
+                    <div className="text-lg font-bold text-[#0a0a0a]">
+                         + {formatCurrency(scenario.extraAmount)}
+                         <span className="text-sm font-normal text-[#6b6b6b]">/mo</span>
+                    </div>
+                 </div>
+                 
+                 <div className="space-y-2 mb-4">
+                     <div className="flex items-center gap-2 text-xs">
+                         <CheckCircle size={16} className="text-[#4c3bdb]" />
+                         <span className="text-[#6b6b6b]">
+                             Save <span className="font-bold text-[#0a0a0a]">{formatCurrency(scenario.interestSaved)}</span>
+                         </span>
+                     </div>
+                      <div className="flex items-center gap-2 text-xs">
+                         <Clock size={16} className="text-[#4c3bdb]" />
+                         <span className="text-[#6b6b6b]">
+                             Finish <span className="font-bold text-[#0a0a0a]">{Math.floor(scenario.timeSavedMonths/12)}y {scenario.timeSavedMonths%12}m</span> early
+                         </span>
+                     </div>
+                 </div>
 
-             <h4 className="font-bold text-slate-700 mb-1">{scenario.label}</h4>
-             <div className="text-2xl font-bold text-slate-900 mb-4">
-                +{formatCurrency(scenario.extraAmount)}
-                <span className="text-xs font-medium text-slate-400 ml-1">/mo</span>
+                 <button 
+                    onClick={() => onApply(scenario.extraAmount)}
+                    className={`
+                        w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-colors
+                        ${params.extraPayment === scenario.extraAmount 
+                            ? 'bg-[#4c3bdb] text-white' 
+                            : 'bg-[#f0f0f2] text-[#0a0a0a] hover:bg-[#e8e8ea]'
+                        }
+                    `}
+                 >
+                    {params.extraPayment === scenario.extraAmount ? 'Active Strategy' : 'Apply Strategy'}
+                    {params.extraPayment !== scenario.extraAmount && <ArrowRight size={14} />}
+                 </button>
              </div>
-
-             <div className="space-y-3 mb-5">
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <PiggyBank size={16} className="text-emerald-500" />
-                    <span>Save <span className="font-bold text-emerald-600">{formatCurrency(scenario.interestSaved)}</span></span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <Clock size={16} className="text-indigo-500" />
-                    <span>Finish <span className="font-bold text-indigo-600">{Math.floor(scenario.timeSavedMonths/12)}y {scenario.timeSavedMonths%12}m</span> early</span>
-                </div>
-             </div>
-
-             <button 
-                onClick={() => onApply(scenario.extraAmount)}
-                className={`
-                    w-full py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2
-                    ${params.extraPayment === scenario.extraAmount
-                        ? 'bg-emerald-600 text-white shadow-emerald-200'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white'
-                    }
-                `}
-             >
-                {params.extraPayment === scenario.extraAmount ? 'Applied' : 'Apply Strategy'}
-                {params.extraPayment !== scenario.extraAmount && <ArrowRight size={14} />}
-             </button>
-          </div>
-        ))}
-      </div>
+          ))}
+       </div>
     </div>
   );
 };
