@@ -138,8 +138,8 @@ const App: React.FC = () => {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e5e5e5] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50">
         <div className="max-w-xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-[#6b6b6b] uppercase tracking-wide">Monthly EMI</span>
-                <span className="text-xl font-bold text-[#4c3bdb]">{formatCurrency(baseEmi)}</span>
+                <span className="text-[10px] font-bold text-[#6b6b6b] uppercase tracking-wide">Monthly Payment</span>
+                <span className="text-xl font-bold text-[#4c3bdb]">{formatCurrency(baseEmi + params.extraPayment)}</span>
             </div>
             <div className="flex flex-col items-end">
                 <span className="text-[10px] font-bold text-[#6b6b6b] uppercase tracking-wide">Total Interest</span>

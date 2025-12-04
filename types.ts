@@ -11,6 +11,7 @@ export interface AmortizationRow {
   openingBalance: number;
   emi: number;
   extraPayment: number;
+  fee: number;
   totalPayment: number;
   principalComponent: number;
   interestComponent: number;

@@ -14,7 +14,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, isOpen,
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
-      <div className="bg-white sm:rounded-3xl rounded-t-3xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 zoom-in-95 duration-300 border border-white/20">
+      <div className="bg-white sm:rounded-3xl rounded-t-3xl shadow-2xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 zoom-in-95 duration-300 border border-white/20">
         
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-20">
@@ -44,6 +44,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, isOpen,
                 <th className="p-4 font-bold text-slate-700 uppercase tracking-wider text-xs border-b border-slate-100 text-right">Opening Bal.</th>
                 <th className="p-4 font-bold text-slate-700 uppercase tracking-wider text-xs border-b border-slate-100 text-right">EMI</th>
                 <th className="p-4 font-bold text-emerald-600 uppercase tracking-wider text-xs border-b border-slate-100 text-right">Extra Paid</th>
+                <th className="p-4 font-bold text-amber-600 uppercase tracking-wider text-xs border-b border-slate-100 text-right">Fees (4%)</th>
                 <th className="p-4 font-bold text-slate-700 uppercase tracking-wider text-xs border-b border-slate-100 text-right">Principal</th>
                 <th className="p-4 font-bold text-rose-500 uppercase tracking-wider text-xs border-b border-slate-100 text-right">Interest</th>
                 <th className="p-4 font-bold text-slate-700 uppercase tracking-wider text-xs border-b border-slate-100 text-right">Closing Bal.</th>
@@ -57,6 +58,9 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, isOpen,
                   <td className="p-4 text-slate-900 font-bold text-right tabular-nums">{formatCurrency(row.emi)}</td>
                   <td className="p-4 text-emerald-600 font-bold text-right tabular-nums">
                     {row.extraPayment > 0 ? `+${formatCurrency(row.extraPayment)}` : '-'}
+                  </td>
+                  <td className="p-4 text-amber-600 font-medium text-right tabular-nums">
+                     {row.fee > 0 ? formatCurrency(row.fee) : '-'}
                   </td>
                   <td className="p-4 text-emerald-600 font-medium text-right tabular-nums">{formatCurrency(row.principalComponent)}</td>
                   <td className="p-4 text-rose-500 font-medium text-right tabular-nums">{formatCurrency(row.interestComponent)}</td>

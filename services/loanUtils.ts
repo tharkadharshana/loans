@@ -65,40 +65,50 @@ export const generateAmortizationSchedule = (
   const schedule: AmortizationRow[] = [];
   let month = 1;
 
+  // Fee rate for extra payments (4% charge)
+  const EXTRA_PAYMENT_FEE_RATE = 0.04; 
+
   // We loop until balance is effectively zero. 
   // Safety break at 2x tenure to prevent infinite loops in weird edge cases.
   while (balance > 10 && month <= scheduledMonths * 2) {
     const interest = balance * monthlyRate;
     let principalFromEmi = emi - interest;
     
-    // Total monthly outflow capability
-    const maxMonthlyPayment = emi + extraPayment;
+    // Calculate effective principal reduction from extra payment (subtracting fee)
+    const effectiveExtra = extraPayment * (1 - EXTRA_PAYMENT_FEE_RATE);
+    
+    // Total potential principal reduction this month
+    const potentialPrincipalReduction = principalFromEmi + effectiveExtra;
     
     // Check if we can close the loan this month
-    // We need to pay: Current Balance + Interest for this month
-    const amountToClose = balance + interest;
-
-    if (amountToClose <= maxMonthlyPayment) {
+    if (balance <= potentialPrincipalReduction) {
         // CLOSE THE LOAN
-        const paymentMade = amountToClose;
-        const principalComponent = balance;
-        // In this final month, the extra payment is whatever is needed above EMI, or 0 if EMI covers it.
-        // Actually, we usually say we pay EMI + Extra. If that's too much, we just pay what's needed.
-        // Let's breakdown strictly for table:
-        
-        // How much of the payment is "EMI" vs "Extra"?
-        // Usually EMI is fixed. If amountToClose < EMI, we just pay amountToClose.
-        // If amountToClose > EMI, the excess is "Extra".
-        
+        let paymentMade = 0;
         let recordedEMI = 0;
         let recordedExtra = 0;
+        let fee = 0;
+        let principalComponent = balance;
 
-        if (paymentMade <= emi) {
-            recordedEMI = paymentMade;
-            recordedExtra = 0;
+        // Can the standard EMI portion cover the remaining balance?
+        if (balance <= principalFromEmi) {
+             // Yes, just pay remaining balance + interest. No extra payment needed, so no fee.
+             paymentMade = balance + interest;
+             recordedEMI = paymentMade;
+             recordedExtra = 0;
+             fee = 0;
         } else {
-            recordedEMI = emi;
-            recordedExtra = paymentMade - emi;
+             // No, we need some extra payment to clear the balance.
+             const principalNeededFromExtra = balance - principalFromEmi;
+             
+             // We need 'principalNeededFromExtra' to hit the principal.
+             // Since fee is taken out, GrossExtra * (1 - rate) = NetExtra
+             // So, GrossExtra = NetExtra / (1 - rate)
+             const grossExtraNeeded = principalNeededFromExtra / (1 - EXTRA_PAYMENT_FEE_RATE);
+             
+             paymentMade = emi + grossExtraNeeded;
+             recordedEMI = emi;
+             recordedExtra = grossExtraNeeded;
+             fee = grossExtraNeeded * EXTRA_PAYMENT_FEE_RATE;
         }
 
         schedule.push({
@@ -106,6 +116,7 @@ export const generateAmortizationSchedule = (
             openingBalance: balance,
             emi: recordedEMI,
             extraPayment: recordedExtra,
+            fee: fee,
             totalPayment: paymentMade,
             principalComponent: principalComponent,
             interestComponent: interest,
@@ -115,14 +126,16 @@ export const generateAmortizationSchedule = (
     } else {
         // NORMAL MONTH
         // We pay full EMI + Full Extra
-        // Principal reduced = (EMI - Interest) + Extra
-        const totalPrincipalPaid = principalFromEmi + extraPayment;
+        // Principal reduced = (EMI - Interest) + (Extra - Fee)
+        const totalPrincipalPaid = principalFromEmi + effectiveExtra;
+        const currentFee = extraPayment * EXTRA_PAYMENT_FEE_RATE;
         
         schedule.push({
             month,
             openingBalance: balance,
             emi: emi,
             extraPayment: extraPayment,
+            fee: currentFee,
             totalPayment: emi + extraPayment,
             principalComponent: totalPrincipalPaid,
             interestComponent: interest,
