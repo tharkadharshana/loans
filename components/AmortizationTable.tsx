@@ -13,7 +13,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, isOpen,
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
       <div className="bg-white sm:rounded-3xl rounded-t-3xl shadow-2xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 zoom-in-95 duration-300 border border-white/20">
         
         {/* Header */}
